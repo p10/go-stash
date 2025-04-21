@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/fatih/color"
 )
+
+const TEASER_LEN int = 10
 
 func main() {
 	limit := flag.Int("limit", -1, "limit to show")
@@ -71,8 +74,19 @@ func list(dir string, limit *int) error {
 	files = files[len(files)-*limit:]
 
 	for i, fileName := range files {
-		body := readFile(filepath.Join(dir, fileName))
-		// TODO: trim body (last 10 lines)
+		lines, err := readLines(filepath.Join(dir, fileName))
+		if err != nil {
+			panic(err)
+		}
+
+		var teaserLines []string
+		if len(lines) > TEASER_LEN {
+			teaserLines = lines[:TEASER_LEN]
+		} else {
+			teaserLines = lines
+		}
+
+		body := strings.Join(teaserLines, "\n")
 
 		color.Set(color.FgYellow)
 		fmt.Printf("%d) %s\n", len(files)-i, strings.ReplaceAll(fileName, ".txt", ""))
@@ -99,17 +113,29 @@ func takeStash(dir string, reversedNumber int) ([]byte, error) {
 	}
 
 	fileName := files[len(files)-reversedNumber]
-	body := readFile(filepath.Join(dir, fileName))
+
+	body, err := os.ReadFile(filepath.Join(dir, fileName))
+	if err != nil {
+		panic(err)
+	}
 
 	return body, nil
 }
 
-func readFile(path string) []byte {
-	content, err := os.ReadFile(path)
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return content
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	return lines, scanner.Err()
 }
 
 func stashesFiles() []string {
