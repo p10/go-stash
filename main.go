@@ -24,24 +24,33 @@ func main() {
 	dir := stashesDir()
 
 	if *limit != -1 {
-		list(dir, limit)
+		err := list(dir, limit)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		return
 	}
 
 	if *take != -1 {
 		content, err := takeStash(dir, *take)
 		if err != nil {
-			panic(err)
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
+
 		fmt.Printf("%s:\n", string(content))
 		return
 	}
 
 	b, _ := io.ReadAll(os.Stdin)
 	if len(b) == 0 {
-		panic(fmt.Errorf("no content to stash"))
+		fmt.Fprintln(os.Stderr, "no content to stash")
+		os.Exit(1)
 	}
 	create(dir, b)
+	fmt.Println("Stash created")
+	fmt.Println(string(b))
 }
 
 func create(dir string, content []byte) {
@@ -52,8 +61,12 @@ func create(dir string, content []byte) {
 	}
 }
 
-func list(dir string, limit *int) {
+func list(dir string, limit *int) error {
 	files := stashesFiles()
+
+	if *limit > len(files) || *limit < 1 {
+		return fmt.Errorf("limit %d is out of range: from 1 to %d", *limit, len(files))
+	}
 
 	files = files[len(files)-*limit:]
 
@@ -70,13 +83,19 @@ func list(dir string, limit *int) {
 			fmt.Printf("\n")
 		}
 	}
+
+	return nil
 }
 
 func takeStash(dir string, reversedNumber int) ([]byte, error) {
 	files := stashesFiles()
 
-	if reversedNumber > len(files) {
-		return nil, fmt.Errorf("stash number %d is out of range %d", reversedNumber, len(files))
+	if reversedNumber > len(files) || reversedNumber < 1 {
+		return nil, fmt.Errorf(
+			"stash number %d is out of range: from 1 to %d",
+			reversedNumber,
+			len(files),
+		)
 	}
 
 	fileName := files[len(files)-reversedNumber]
