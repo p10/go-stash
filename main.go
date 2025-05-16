@@ -42,7 +42,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("%s:\n", string(content))
+		fmt.Printf("%s", string(content))
 		return
 	}
 
