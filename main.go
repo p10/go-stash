@@ -52,7 +52,6 @@ func main() {
 		os.Exit(1)
 	}
 	create(dir, b)
-	fmt.Println("Stash created")
 	fmt.Println(string(b))
 }
 
